@@ -104,6 +104,20 @@ export default function Outline() {
     setSections([...sections, newSection]);
   };
 
+  const handleSectionUpdate = (id: string, field: string, value: any) => {
+    if (id === 'reorder' && field === 'sections') {
+      // Handle section reordering
+      setSections(value);
+    } else if (field === 'title') {
+      updateSectionTitle(id, value);
+    } else if (field === 'bullets') {
+      // Handle bullet updates
+      setSections(sections.map(s => s.id === id ? { ...s, bullets: value } : s));
+    } else if (field === 'bullet') {
+      updateBullet(id, value.index, value.value);
+    }
+  };
+
   const saveOutline = async () => {
     try {
       const { data: existingOutline } = await supabase
