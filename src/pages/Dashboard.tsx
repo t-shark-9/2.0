@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFeatureFlags } from "@/contexts/FeatureFlagsContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, BookOpen, LogOut, Clock, CheckCircle2 } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Plus, BookOpen, LogOut, Clock, CheckCircle2, Shield } from "lucide-react";
 import { toast } from "sonner";
 
 interface Assignment {
@@ -20,6 +22,7 @@ interface Assignment {
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useAuth();
+  const { flags } = useFeatureFlags();
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,10 +81,19 @@ export default function Dashboard() {
             <h1 className="text-4xl font-bold tracking-tight">My Assignments</h1>
             <p className="text-muted-foreground mt-2">Track your writing journey</p>
           </div>
-          <Button onClick={signOut} variant="outline" size="sm">
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            {flags.themeToggle && <ThemeToggle />}
+            {flags.adminAccess && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
+              </Button>
+            )}
+            <Button onClick={signOut} variant="outline" size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Create New Assignment */}

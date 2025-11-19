@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFeatureFlags } from "@/contexts/FeatureFlagsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { DraggableBulletList } from "@/components/ui/draggable-bullet-list";
 import { ArrowLeft, Save, Loader2, Sparkles, AlertCircle, CheckCircle2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { exportToPDF, validateContentForPDF } from "@/lib/pdf-export";
@@ -26,6 +28,7 @@ interface Evaluation {
 export default function Draft() {
   const { id } = useParams();
   const { user, loading: authLoading } = useAuth();
+  const { flags } = useFeatureFlags();
   const navigate = useNavigate();
 
   const [assignment, setAssignment] = useState<any>(null);
@@ -172,6 +175,11 @@ export default function Draft() {
   };
 
   const handleExportPDF = async () => {
+    if (!flags.pdfDownload) {
+      toast.error("PDF export is currently disabled");
+      return;
+    }
+
     if (!content.trim()) {
       toast.error("Please write some content first");
       return;
@@ -202,6 +210,20 @@ export default function Draft() {
       toast.error(error.message || "Failed to export PDF");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleOutlineReorder = async (newSections: any[]) => {
+    try {
+      await supabase
+        .from("outlines")
+        .update({ sections: newSections })
+        .eq("assignment_id", id);
+      
+      setOutline(prev => ({ ...prev, sections: newSections }));
+      toast.success("Outline updated!");
+    } catch (error) {
+      toast.error("Failed to update outline");
     }
   };
 
@@ -246,66 +268,64 @@ export default function Draft() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">{outline && (
-          <Card className="shadow-medium">
-            <CardHeader>
-              <CardTitle className="text-lg">Your Outline</CardTitle>
-              <CardDescription>Reference your structure as you write</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {(outline.sections as any[])?.map((section: any, idx: number) => (
-                  <div key={idx} className="text-sm">
-                    <p className="font-semibold text-foreground">{section.title}</p>
-                    <ul className="ml-4 mt-1 space-y-1 text-muted-foreground">
-                      {section.bullets?.map((bullet: string, bidx: number) => (
-                        <li key={bidx}>• {bullet}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <div className="lg:col-span-2 space-y-6">
+            {outline && (
+              <DraggableBulletList
+                sections={outline.sections || []}
+                onReorder={handleOutlineReorder}
+                enabled={flags.draggableBullets}
+              />
+            )}
 
         <Card className="shadow-medium">
           <CardHeader>
             <CardTitle>Write Your Draft</CardTitle>
             <CardDescription>
-              Transform your outline into a complete draft. Use equations and formatting tools to enhance your writing.
+              Transform your outline into a complete draft. {flags.equationEditor ? 'Use equations and formatting tools to enhance your writing.' : 'Focus on clear, structured writing.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <RichTextEditor
-              value={content}
-              onChange={setContent}
-              placeholder="Start writing your draft here... Use $equation$ for inline math or $$equation$$ for block equations."
-              rows={16}
-            />
+            {flags.equationEditor ? (
+              <RichTextEditor
+                value={content}
+                onChange={setContent}
+                placeholder="Start writing your draft here... Use $equation$ for inline math or $$equation$$ for block equations."
+                rows={16}
+              />
+            ) : (
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Start writing your draft here..."
+                rows={20}
+                className="font-serif text-base leading-relaxed"
+              />
+            )}
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">
                 Word count: {content.trim().split(/\s+/).filter(w => w).length}
               </p>
               <div className="flex gap-2">
-                <Button 
-                  onClick={handleExportPDF} 
-                  disabled={isExporting || !content.trim()} 
-                  variant="outline"
-                  size="sm"
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4 mr-2" />
-                      Export PDF
-                    </>
-                  )}
-                </Button>
+                {flags.pdfDownload && (
+                  <Button 
+                    onClick={handleExportPDF} 
+                    disabled={isExporting || !content.trim()} 
+                    variant="outline"
+                    size="sm"
+                  >
+                    {isExporting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export PDF
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button onClick={handleEvaluate} disabled={isEvaluating} variant="outline">
                   {isEvaluating ? (
                     <>
