@@ -1,8 +1,8 @@
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { EquationButton, EquationEditor } from "@/components/ui/equation-editor";
-import { Bold, Italic, Underline, Sigma, Type } from "lucide-react";
+import { EquationEditor } from "@/components/ui/equation-editor";
+import { Type } from "lucide-react";
 import { InlineMath, BlockMath } from 'react-katex';
 
 interface RichTextEditorProps {
@@ -21,7 +21,6 @@ interface TextSegment {
 
 export function RichTextEditor({ value, onChange, placeholder = "Start writing...", rows = 20, className = "" }: RichTextEditorProps) {
   const [isEquationEditorOpen, setIsEquationEditorOpen] = useState(false);
-  const [selectedText, setSelectedText] = useState("");
   const editorRef = useRef<HTMLDivElement>(null);
 
   // Parse the content to identify equations
@@ -97,7 +96,6 @@ export function RichTextEditor({ value, onChange, placeholder = "Start writing..
 
     const start = textArea.selectionStart;
     const end = textArea.selectionEnd;
-    const selectedText = value.slice(start, end);
     
     const equationWrapper = isInline ? `$${latex}$` : `$$${latex}$$`;
     const newValue = value.slice(0, start) + equationWrapper + value.slice(end);
@@ -110,20 +108,6 @@ export function RichTextEditor({ value, onChange, placeholder = "Start writing..
       const newCursorPos = start + equationWrapper.length;
       textArea.setSelectionRange(newCursorPos, newCursorPos);
     }, 100);
-  };
-
-  const handleToggleEquation = () => {
-    const textArea = document.getElementById('draft-textarea') as HTMLTextAreaElement;
-    if (!textArea) return;
-
-    const start = textArea.selectionStart;
-    const end = textArea.selectionEnd;
-    const selectedText = value.slice(start, end);
-
-    if (selectedText) {
-      setSelectedText(selectedText);
-    }
-    setIsEquationEditorOpen(true);
   };
 
   const renderPreview = () => {
@@ -173,16 +157,6 @@ export function RichTextEditor({ value, onChange, placeholder = "Start writing..
     <div className={`space-y-4 ${className}`}>
       {/* Toolbar */}
       <div className="flex items-center gap-2 p-2 border-b">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleToggleEquation}
-          className="gap-2"
-        >
-          <Sigma className="h-4 w-4" />
-          Insert Equation
-        </Button>
-        
         <div className="flex-1" />
         
         <Button
@@ -236,7 +210,6 @@ export function RichTextEditor({ value, onChange, placeholder = "Start writing..
         isOpen={isEquationEditorOpen}
         onClose={() => setIsEquationEditorOpen(false)}
         onInsert={handleEquationInsert}
-        selectedText={selectedText}
       />
     </div>
   );

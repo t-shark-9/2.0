@@ -1,5 +1,4 @@
-import React from "react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GripVertical } from "lucide-react";
 
@@ -14,52 +13,60 @@ interface DraggableBulletListProps {
 }
 
 export function DraggableBulletList({ sections, onReorder, enabled = true }: DraggableBulletListProps) {
-  const handleOnDragEnd = (result: DropResult) => {
-    if (!result.destination || !enabled) return;
+  const [draggedItem, setDraggedItem] = useState<{
+    sectionIndex: number;
+    bulletIndex: number;
+  } | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<{
+    sectionIndex: number;
+    bulletIndex: number;
+  } | null>(null);
 
-    const { source, destination } = result;
+  const handleDragStart = (e: React.DragEvent, sectionIndex: number, bulletIndex: number) => {
+    if (!enabled) return;
+    setDraggedItem({ sectionIndex, bulletIndex });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, sectionIndex: number, bulletIndex: number) => {
+    if (!enabled) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverItem({ sectionIndex, bulletIndex });
+  };
+
+  const handleDragLeave = () => {
+    setDragOverItem(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetSectionIndex: number, targetBulletIndex: number) => {
+    if (!enabled || !draggedItem) return;
+    e.preventDefault();
+
+    const { sectionIndex: sourceSectionIndex, bulletIndex: sourceBulletIndex } = draggedItem;
     
-    if (source.droppableId === destination.droppableId) {
-      // Reordering within the same section
-      const sectionIndex = parseInt(source.droppableId.split('-')[1]);
-      const section = sections[sectionIndex];
-      const newBullets = Array.from(section.bullets);
-      const [reorderedBullet] = newBullets.splice(source.index, 1);
-      newBullets.splice(destination.index, 0, reorderedBullet);
-
-      const newSections = [...sections];
-      newSections[sectionIndex] = {
-        ...section,
-        bullets: newBullets
-      };
-      
-      onReorder(newSections);
-    } else {
-      // Moving between sections
-      const sourceSectionIndex = parseInt(source.droppableId.split('-')[1]);
-      const destSectionIndex = parseInt(destination.droppableId.split('-')[1]);
-      
-      const sourceSection = sections[sourceSectionIndex];
-      const destSection = sections[destSectionIndex];
-      
-      const sourceBullets = Array.from(sourceSection.bullets);
-      const destBullets = Array.from(destSection.bullets);
-      
-      const [movedBullet] = sourceBullets.splice(source.index, 1);
-      destBullets.splice(destination.index, 0, movedBullet);
-      
-      const newSections = [...sections];
-      newSections[sourceSectionIndex] = {
-        ...sourceSection,
-        bullets: sourceBullets
-      };
-      newSections[destSectionIndex] = {
-        ...destSection,
-        bullets: destBullets
-      };
-      
-      onReorder(newSections);
+    if (sourceSectionIndex === targetSectionIndex && sourceBulletIndex === targetBulletIndex) {
+      setDraggedItem(null);
+      setDragOverItem(null);
+      return;
     }
+
+    const newSections = [...sections];
+    
+    // Remove the dragged item
+    const [movedBullet] = newSections[sourceSectionIndex].bullets.splice(sourceBulletIndex, 1);
+    
+    // Insert at the new position
+    newSections[targetSectionIndex].bullets.splice(targetBulletIndex, 0, movedBullet);
+    
+    onReorder(newSections);
+    setDraggedItem(null);
+    setDragOverItem(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverItem(null);
   };
 
   if (!enabled) {
@@ -96,55 +103,42 @@ export function DraggableBulletList({ sections, onReorder, enabled = true }: Dra
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <DragDropContext onDragEnd={handleOnDragEnd}>
-          <div className="space-y-3">
-            {sections.map((section, sectionIdx) => (
-              <div key={sectionIdx} className="text-sm">
-                <p className="font-semibold text-foreground mb-2">{section.title}</p>
-                <Droppable droppableId={`section-${sectionIdx}`}>
-                  {(provided, snapshot) => (
-                    <ul
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className={`ml-4 space-y-1 min-h-[20px] p-2 rounded-lg transition-colors ${
-                        snapshot.isDraggingOver ? 'bg-accent/20 border-2 border-dashed border-accent' : ''
-                      }`}
-                    >
-                      {section.bullets?.map((bullet, bulletIdx) => (
-                        <Draggable
-                          key={`${sectionIdx}-${bulletIdx}`}
-                          draggableId={`${sectionIdx}-${bulletIdx}`}
-                          index={bulletIdx}
-                        >
-                          {(provided, snapshot) => (
-                            <li
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`flex items-center gap-2 p-1 rounded transition-all ${
-                                snapshot.isDragging 
-                                  ? 'bg-primary/10 shadow-lg scale-105 rotate-1' 
-                                  : 'hover:bg-muted/50'
-                              }`}
-                            >
-                              <div
-                                {...provided.dragHandleProps}
-                                className="flex-shrink-0 cursor-grab active:cursor-grabbing"
-                              >
-                                <GripVertical className="h-3 w-3 text-muted-foreground" />
-                              </div>
-                              <span className="text-muted-foreground">• {bullet}</span>
-                            </li>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </ul>
-                  )}
-                </Droppable>
-              </div>
-            ))}
-          </div>
-        </DragDropContext>
+        <div className="space-y-3">
+          {sections.map((section, sectionIdx) => (
+            <div key={sectionIdx} className="text-sm">
+              <p className="font-semibold text-foreground mb-2">{section.title}</p>
+              <ul className="ml-4 space-y-1 min-h-[20px]">
+                {section.bullets?.map((bullet, bulletIdx) => (
+                  <li
+                    key={`${sectionIdx}-${bulletIdx}`}
+                    draggable={enabled}
+                    onDragStart={(e) => handleDragStart(e, sectionIdx, bulletIdx)}
+                    onDragOver={(e) => handleDragOver(e, sectionIdx, bulletIdx)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, sectionIdx, bulletIdx)}
+                    onDragEnd={handleDragEnd}
+                    className={`
+                      flex items-center gap-2 p-2 rounded transition-all cursor-move
+                      ${draggedItem?.sectionIndex === sectionIdx && draggedItem?.bulletIndex === bulletIdx 
+                        ? 'opacity-50 scale-95' 
+                        : ''
+                      }
+                      ${dragOverItem?.sectionIndex === sectionIdx && dragOverItem?.bulletIndex === bulletIdx 
+                        ? 'bg-accent/20 border-2 border-dashed border-accent' 
+                        : 'hover:bg-muted/50'
+                      }
+                    `}
+                  >
+                    <div className="flex-shrink-0 cursor-grab active:cursor-grabbing">
+                      <GripVertical className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                    <span className="text-muted-foreground">• {bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

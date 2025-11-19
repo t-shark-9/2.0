@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Shield, Settings, Download, Calculator, Palette, DragHandleDots2 } from "lucide-react";
+import { ArrowLeft, Shield, Settings, Download, Calculator, Palette, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminPage() {
@@ -186,7 +186,7 @@ export default function AdminPage() {
           <Card className="shadow-medium">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
-                <DragHandleDots2 className="h-5 w-5" />
+                <GripVertical className="h-5 w-5" />
                 Draggable Bullet Points
               </CardTitle>
               <CardDescription>

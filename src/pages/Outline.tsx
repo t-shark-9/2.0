@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFeatureFlags } from "@/contexts/FeatureFlagsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowRight, Loader2, Plus, GripVertical } from "lucide-react";
+import { DraggableOutlineSections } from "@/components/ui/draggable-outline-sections";
+import { ArrowLeft, ArrowRight, Loader2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 
 interface Section {
@@ -21,6 +20,7 @@ interface Section {
 export default function Outline() {
   const { id } = useParams();
   const { user, loading: authLoading } = useAuth();
+  const { flags } = useFeatureFlags();
   const navigate = useNavigate();
 
   const [assignment, setAssignment] = useState<any>(null);
@@ -171,54 +171,23 @@ export default function Outline() {
 
         <Card className="shadow-medium">
           <CardHeader>
-            <CardTitle>Build Your Structure</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {flags.draggableBullets && <GripVertical className="h-4 w-4 text-muted-foreground" />}
+              Build Your Structure
+              {flags.draggableBullets && <span className="text-sm font-normal text-muted-foreground">(Draggable)</span>}
+            </CardTitle>
             <CardDescription>
-              Organize your ideas into sections. Add bullet points for each key concept.
+              Organize your ideas into sections. {flags.draggableBullets ? 'Drag to reorder sections and bullet points.' : 'Add bullet points for each key concept.'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {sections.map((section) => (
-              <Card key={section.id} className="border-2">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={section.title}
-                      onChange={(e) => updateSectionTitle(section.id, e.target.value)}
-                      className="font-semibold text-lg border-0 p-0 h-auto focus-visible:ring-0"
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {section.bullets.map((bullet, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <span className="text-muted-foreground mt-2">•</span>
-                      <Textarea
-                        value={bullet}
-                        onChange={(e) => updateBullet(section.id, idx, e.target.value)}
-                        placeholder="Add a key point or sub-topic..."
-                        rows={2}
-                        className="flex-1"
-                      />
-                    </div>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => addBullet(section.id)}
-                    className="mt-2"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add bullet
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-
-            <Button variant="outline" onClick={addSection} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Section
-            </Button>
+          <CardContent>
+            <DraggableOutlineSections
+              sections={sections}
+              onUpdateSection={handleSectionUpdate}
+              onAddBullet={addBullet}
+              onAddSection={addSection}
+              enabled={flags.draggableBullets}
+            />
           </CardContent>
         </Card>
 
