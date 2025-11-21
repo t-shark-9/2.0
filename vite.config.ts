@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => ({
   base: mode === "production" ? "/IBDP/" : "/",
   server: {
     host: "::",
-    port: 8080,
+    port: 5173, // Changed from 8080 to avoid conflict with AFFiNE
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

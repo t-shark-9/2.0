@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { DraggableBulletList } from "@/components/ui/draggable-bullet-list";
-import { ArrowLeft, Save, Loader2, Sparkles, AlertCircle, CheckCircle2, Download } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sparkles, AlertCircle, CheckCircle2, Download, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { exportToPDF, validateContentForPDF } from "@/lib/pdf-export";
 
@@ -40,6 +40,7 @@ export default function Draft() {
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [useAffineEditor, setUseAffineEditor] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
@@ -258,9 +259,22 @@ export default function Draft() {
             </Button>
           </div>
           <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight">{assignment?.title}</h1>
-              <p className="text-muted-foreground mt-2">Draft Workspace</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-bold tracking-tight">{assignment?.title}</h1>
+                <Button
+                  variant={useAffineEditor ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUseAffineEditor(!useAffineEditor)}
+                  className="ml-2"
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  {useAffineEditor ? "AFFiNE Active" : "Use AFFiNE"}
+                </Button>
+              </div>
+              <p className="text-muted-foreground">
+                Draft Workspace {useAffineEditor ? "- AFFiNE Editor with Lovable AI" : "- Lovable AI"}
+              </p>
             </div>
             <Badge className="bg-accent/20 text-accent-foreground">Writing</Badge>
           </div>
@@ -281,11 +295,25 @@ export default function Draft() {
           <CardHeader>
             <CardTitle>Write Your Draft</CardTitle>
             <CardDescription>
-              Transform your outline into a complete draft. {flags.equationEditor ? 'Use equations and formatting tools to enhance your writing.' : 'Focus on clear, structured writing.'}
+              {useAffineEditor 
+                ? 'AFFiNE Editor - Full-featured writing with real-time collaboration, AI assistance, and rich formatting'
+                : 'Transform your outline into a complete draft with AI-powered assistance. ' + (flags.equationEditor ? 'Use equations and formatting tools to enhance your writing.' : 'Focus on clear, structured writing.')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {flags.equationEditor ? (
+            {useAffineEditor ? (
+              <div className="w-full rounded-lg overflow-hidden border bg-white" style={{ height: '700px' }}>
+                <iframe
+                  src="http://localhost:8080"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 'none' }}
+                  title="AFFiNE Editor"
+                  className="rounded-lg"
+                  allow="clipboard-read; clipboard-write"
+                />
+              </div>
+            ) : flags.equationEditor ? (
               <RichTextEditor
                 value={content}
                 onChange={setContent}
