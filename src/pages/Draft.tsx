@@ -40,7 +40,7 @@ export default function Draft() {
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [useAffineEditor, setUseAffineEditor] = useState(true);
+  const [useAffineEditor, setUseAffineEditor] = useState(false); // Disabled by default for deployment
 
   useEffect(() => {
     if (authLoading) return;
